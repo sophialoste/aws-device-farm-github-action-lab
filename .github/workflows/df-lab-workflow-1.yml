@@ -1,36 +1,74 @@
-# This is a basic workflow to help you get started with Actions
+name: AWS Device Farm Automated Test for Mobile App
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  test:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::XXXXXXXXXXXX:role/DeviceFarm-GitHubActionRole
+          aws-region: us-west-2
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+      - name: Schedule Device Farm Automated Test
+        id: RunTest
+        uses: aws-actions/aws-devicefarm-mobile-device-testing@v2.0
+        with:
+          run-settings-json: |
+            {
+              "name": "GitHubAction-${{ github.workflow }}_${{ github.run_id }}_${{ github.run_attempt }}",
+              "projectArn": "Device Farm Workshop",
+              "appArn": "aws-devicefarm-sample-app.apk",
+              "devicePoolArn": "Top Devices",
+              "test": {
+                "type": "APPIUM_NODE",
+                "testPackageArn": "MySampleAndroidTests.zip",
+                "testSpecArn": "webdriverio_spec_file.yml"
+              },
+              "configuration": {
+                "locale": "en_US",
+                "location": {
+                  "latitude": 47.6204,
+                  "longitude": -122.3491
+                },
+                "customerArtifactPaths": {
+                  "deviceHostPaths": [
+                    "$WORKING_DIRECTORY"
+                  ]
+                },
+                "radios": {
+                  "wifi": true,
+                  "bluetooth": false,
+                  "nfc": true,
+                  "gps": true
+                },
+                "billingMethod": "METERED"
+              },
+              "executionConfiguration": {
+                "jobTimeoutMinutes": 150,
+                "accountsCleanup": true,
+                "appPackagesCleanup": true,
+                "videoCapture": true,
+                "skipAppResign": false
+              }
+            }
+          artifact-types: ALL
+          upload-poll-interval: 1000
+          run-poll-interval: 30000
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: AutomatedTestOutputFiles
+          path: ${{ steps.RunTest.outputs.artifact-folder }}
