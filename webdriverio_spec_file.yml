@@ -96,10 +96,10 @@ phases:
       # When compiling with npm-bundle, the test folder can be found in the node_modules/*/ subdirectory.
       - cd $DEVICEFARM_TEST_PACKAGE_PATH/node_modules/*
       - echo "Starting the Appium NodeJS test"
-      
-      # Enter your command below to start the tests. The command should be the same command as the one 
+
+      # Enter your command below to start the tests. The command should be the same command as the one
       # you use to run your tests locally from the command line. An example, "npm test", is given below:
-      - npm run wdio-device-farm
+      - npm run test
 
   # The post-test phase contains commands that are run after your tests have completed.
   # If you need to run any commands to generating logs and reports on how your test performed,
